@@ -15,7 +15,6 @@ const moonIllumination = document.querySelector('#moonIllumination');
 const moonRiseTime = document.querySelector('#moonRiseTime');
 const moonDirection = document.querySelector('#moonDirection');
 const albumTrack = document.querySelector('.album-track');
-const stagePhotoTrack = document.querySelector('.stage-photo-track');
 const albumModal = document.querySelector('#albumModal');
 const albumFullImage = document.querySelector('#albumFullImage');
 const albumClose = document.querySelector('#albumClose');
@@ -147,15 +146,6 @@ function setupAlbum() {
   });
 }
 
-function setupStageBackdrop() {
-  const photos = Array.from(stagePhotoTrack.querySelectorAll('img'));
-  photos.forEach((photo) => {
-    const clone = photo.cloneNode(true);
-    clone.setAttribute('aria-hidden', 'true');
-    stagePhotoTrack.appendChild(clone);
-  });
-}
-
 function closeAlbumModal() {
   albumModal.hidden = true;
   albumFullImage.removeAttribute('src');
@@ -187,6 +177,7 @@ function startMoonlightMode() {
     volume: bgmAudio.volume
   };
   document.body.classList.add('moonlight-mode');
+  petBoy.classList.add('serenade');
   petSay('민지씨를 위한 달빛 공연 시작!');
   bgmAudio.src = moonlightBgmSrc;
   bgmAudio.muted = false;
@@ -203,6 +194,7 @@ function startMoonlightMode() {
 function stopMoonlightMode() {
   moonlightActive = false;
   document.body.classList.remove('moonlight-mode');
+  petBoy.classList.remove('serenade');
   clearTimeout(moonlightTimerId);
   clearInterval(moonlightNotesId);
   moonlightTimerId = null;
@@ -1074,7 +1066,6 @@ bgmVolume.addEventListener('input', updateBgmVolume);
 updateBgmButton();
 renderMoonTracker();
 setupAlbum();
-setupStageBackdrop();
 moonVisual.addEventListener('click', countMoonClick);
 fortuneButton.addEventListener('click', showFortune);
 lunchButton.addEventListener('click', showLunchMenu);
