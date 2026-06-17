@@ -14,6 +14,11 @@ const moonSummary = document.querySelector('#moonSummary');
 const moonIllumination = document.querySelector('#moonIllumination');
 const moonRiseTime = document.querySelector('#moonRiseTime');
 const moonDirection = document.querySelector('#moonDirection');
+const albumTrack = document.querySelector('.album-track');
+const stagePhotoTrack = document.querySelector('.stage-photo-track');
+const albumModal = document.querySelector('#albumModal');
+const albumFullImage = document.querySelector('#albumFullImage');
+const albumClose = document.querySelector('#albumClose');
 const fortunes = [
   '민지는 오늘 생각보다 더 많은 응원을 받는 날이야.',
   '민지는 오늘 작은 선택 하나로 기분 좋은 흐름을 만들 수 있어.',
@@ -126,17 +131,138 @@ function renderMoonTracker() {
   moonDirection.textContent = `${directionFromAzimuth(riseAzimuth)} (${Math.round(riseAzimuth)}°)`;
 }
 
+function setupAlbum() {
+  const originals = Array.from(albumTrack.querySelectorAll('.album-photo'));
+  originals.forEach((photo) => {
+    const clone = photo.cloneNode(true);
+    clone.setAttribute('aria-hidden', 'true');
+    albumTrack.appendChild(clone);
+  });
+
+  albumTrack.addEventListener('click', (event) => {
+    const photo = event.target.closest('.album-photo');
+    if (!photo) return;
+    albumFullImage.src = photo.dataset.full;
+    albumModal.hidden = false;
+  });
+}
+
+function setupStageBackdrop() {
+  const photos = Array.from(stagePhotoTrack.querySelectorAll('img'));
+  photos.forEach((photo) => {
+    const clone = photo.cloneNode(true);
+    clone.setAttribute('aria-hidden', 'true');
+    stagePhotoTrack.appendChild(clone);
+  });
+}
+
+function closeAlbumModal() {
+  albumModal.hidden = true;
+  albumFullImage.removeAttribute('src');
+}
+
+function spawnMusicNote() {
+  if (!moonlightActive) return;
+  const note = document.createElement('span');
+  note.className = 'music-note';
+  note.textContent = ['♪', '♫', '♬', '♩'][Math.floor(Math.random() * 4)];
+  note.style.left = `${16 + Math.random() * 68}vw`;
+  note.style.setProperty('--note-drift', `${Math.random() * 180 - 90}px`);
+  musicNotes.appendChild(note);
+  setTimeout(() => note.remove(), 7600);
+}
+
+function startMoonlightMode() {
+  if (moonlightActive) {
+    clearTimeout(moonlightTimerId);
+    moonlightTimerId = setTimeout(stopMoonlightMode, 269000);
+    return;
+  }
+
+  moonlightActive = true;
+  savedBgmState = {
+    src: bgmAudio.getAttribute('src') || normalBgmSrc,
+    paused: bgmAudio.paused,
+    muted: bgmAudio.muted,
+    volume: bgmAudio.volume
+  };
+  document.body.classList.add('moonlight-mode');
+  petSay('민지씨를 위한 달빛 공연 시작!');
+  bgmAudio.src = moonlightBgmSrc;
+  bgmAudio.muted = false;
+  bgmAudio.volume = Math.min(0.24, Math.max(0.14, Number(bgmVolume.value) / 100 || defaultBgmVolume));
+  bgmAudio.play().then(updateBgmButton).catch(() => {
+    bgmStarted = false;
+    updateBgmButton();
+  });
+  spawnMusicNote();
+  moonlightNotesId = setInterval(spawnMusicNote, 1250);
+  moonlightTimerId = setTimeout(stopMoonlightMode, 269000);
+}
+
+function stopMoonlightMode() {
+  moonlightActive = false;
+  document.body.classList.remove('moonlight-mode');
+  clearTimeout(moonlightTimerId);
+  clearInterval(moonlightNotesId);
+  moonlightTimerId = null;
+  moonlightNotesId = null;
+  musicNotes.innerHTML = '';
+
+  if (savedBgmState) {
+    bgmAudio.src = savedBgmState.src || normalBgmSrc;
+    bgmAudio.muted = savedBgmState.muted;
+    bgmAudio.volume = savedBgmState.volume;
+    bgmStarted = !savedBgmState.paused;
+    if (savedBgmState.paused) {
+      bgmAudio.pause();
+    } else {
+      bgmAudio.play().catch(() => {});
+    }
+  }
+  savedBgmState = null;
+  updateBgmButton();
+}
+
+function countMoonClick() {
+  const now = Date.now();
+  moonClickTimes = moonClickTimes.filter((time) => now - time <= 10000);
+  moonClickTimes.push(now);
+  if (moonClickTimes.length >= 20) {
+    moonClickTimes = [];
+    startMoonlightMode();
+  }
+}
+
 const canvas = document.querySelector('#heartGame');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.querySelector('#score');
 const timeEl = document.querySelector('#timeLeft');
 const bestEl = document.querySelector('#bestScore');
 const startBtn = document.querySelector('#startGame');
+const resetBtn = document.querySelector('#resetGame');
+const swordCanvas = document.querySelector('#swordGame');
+const swordCtx = swordCanvas.getContext('2d');
+const swordScoreEl = document.querySelector('#swordScore');
+const swordHpEl = document.querySelector('#swordHp');
+const startSwordBtn = document.querySelector('#startSwordGame');
+const resetSwordBtn = document.querySelector('#resetSwordGame');
+const memoryCanvas = document.querySelector('#memoryGame');
+const memoryCtx = memoryCanvas.getContext('2d');
+const memoryLevelEl = document.querySelector('#memoryLevel');
+const memoryStreakEl = document.querySelector('#memoryStreak');
+const startMemoryBtn = document.querySelector('#startMemoryGame');
+const resetMemoryBtn = document.querySelector('#resetMemoryGame');
 const rewardPop = document.querySelector('#rewardPop');
 const rewardImage = document.querySelector('#rewardImage');
 const rewardImages = ['assets/minji/na/1.jpg', 'assets/minji/na/2.jpg'];
 const bgmAudio = document.querySelector('#bgmAudio');
 const bgmToggle = document.querySelector('#bgmToggle');
+const bgmVolume = document.querySelector('#bgmVolume');
+const defaultBgmVolume = 0.18;
+const normalBgmSrc = 'assets/bgm/happy.mp3';
+const moonlightBgmSrc = 'assets/bgm/radi.mp3';
+const musicNotes = document.querySelector('#musicNotes');
 
 let basket = { x: canvas.width / 2 - 42, y: canvas.height - 54, w: 84, h: 26, speed: 8 };
 let hearts = [];
@@ -160,11 +286,18 @@ let petVy = 0;
 let petMode = '';
 let petLastFrame = 0;
 let petNextDecisionAt = 0;
+let petClimbUntil = 0;
+let petClimbStepAt = 0;
 let petNextTalkAt = Date.now() + 11000;
 let petDrag = null;
 let petTalkTimerId = null;
 let petEasterTimerId = null;
 let petClickTimes = [];
+let moonClickTimes = [];
+let moonlightActive = false;
+let moonlightTimerId = null;
+let moonlightNotesId = null;
+let savedBgmState = null;
 const petPhrases = [
   '민지씨 오늘도 귀여워!',
   '하트 모으러 가자!',
@@ -176,6 +309,7 @@ const petPhrases = [
 ];
 
 bestEl.textContent = bestScore;
+bgmAudio.volume = defaultBgmVolume;
 
 function movePet(x, y) {
   const maxX = window.innerWidth - petBoy.offsetWidth - 8;
@@ -194,6 +328,7 @@ function setPetMode(mode) {
   petMode = mode;
   petBoy.classList.toggle('walking', mode === 'walk');
   petBoy.classList.toggle('climbing', mode === 'climb');
+  petBoy.classList.toggle('flying', mode === 'fly');
 }
 
 function petSay(message) {
@@ -208,11 +343,16 @@ function choosePetAction(now) {
   petNextDecisionAt = now + 1400 + Math.random() * 2100;
 
   if (Math.random() < 0.54) petVx = (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.9);
-  if (petMode === 'walk' && Math.random() < 0.28) petVy = -8.8 - Math.random() * 3.8;
+  if (petMode === 'walk' && Math.random() < 0.28) {
+    setPetMode('fly');
+    petVy = -8.8 - Math.random() * 3.8;
+  }
   if (petMode === 'walk' && Math.random() < 0.34) {
     setPetMode('climb');
-    petVy = -2.4 - Math.random() * 1.6;
-    petVx = petX < window.innerWidth / 2 ? 1.1 : -1.1;
+    petClimbUntil = now + 5200 + Math.random() * 3800;
+    petClimbStepAt = 0;
+    petVy = 0;
+    petVx = petX < window.innerWidth / 2 ? 0.18 : -0.18;
   }
 }
 
@@ -227,24 +367,40 @@ function updatePet(now) {
   const delta = Math.min(2.2, (now - petLastFrame) / 16.67);
   petLastFrame = now;
 
+  if (moonlightActive) {
+    petVx = 0;
+    petVy = 0;
+    petBoy.classList.remove('walking', 'climbing', 'flying');
+    petX += ((window.innerWidth / 2 - petBoy.offsetWidth / 2) - petX) * 0.06;
+    petY += ((petFloorY() - 22) - petY) * 0.06;
+    petBoy.classList.remove('facing-left');
+    movePet(petX, petY);
+    requestAnimationFrame(updatePet);
+    return;
+  }
+
   if (!petDrag) {
     choosePetAction(now);
     const floorY = petFloorY();
     const maxX = window.innerWidth - petBoy.offsetWidth - 8;
 
     if (petMode === 'climb') {
-      petVy -= 0.08 * delta;
-      petX += petVx * delta;
-      petY += petVy * delta;
-      if (petY < 82 || Math.random() < 0.006) {
-        setPetMode('walk');
-        petVy = -1.2;
+      if (now >= petClimbStepAt) {
+        petClimbStepAt = now + 360 + Math.random() * 260;
+        petX += (petVx * 34) + (Math.random() * 10 - 5);
+        petY -= 10 + Math.random() * 12;
+      }
+      petY += 0.08 * delta;
+      if (petY < 82 || now > petClimbUntil) {
+        setPetMode('fly');
+        petVy = -1.8;
+        petVx = petVx < 0 ? -1.6 : 1.6;
       }
     } else {
-      setPetMode('walk');
       petVy += 0.48 * delta;
       petX += petVx * delta;
       petY += petVy * delta;
+      if (petMode !== 'fly') setPetMode('walk');
     }
 
     if (petX <= 8 || petX >= maxX) {
@@ -252,7 +408,9 @@ function updatePet(now) {
       petX = Math.max(8, Math.min(maxX, petX));
       if (petMode === 'walk' && Math.random() < 0.42) {
         setPetMode('climb');
-        petVy = -3.2;
+        petClimbUntil = now + 5200 + Math.random() * 3800;
+        petClimbStepAt = 0;
+        petVy = 0;
       }
     }
 
@@ -260,6 +418,7 @@ function updatePet(now) {
       petY = floorY;
       petVy = 0;
       if (petMode === 'climb') setPetMode('walk');
+      if (petMode === 'fly') setPetMode('walk');
     }
 
     petBoy.classList.toggle('facing-left', petVx < 0);
@@ -301,7 +460,7 @@ function startPetDrag(event) {
     moved: false
   };
   petBoy.classList.add('dragging');
-  petBoy.classList.remove('walking', 'climbing');
+  petBoy.classList.remove('walking', 'climbing', 'flying');
   petMode = 'drag';
   petBoy.setPointerCapture(event.pointerId);
 }
@@ -333,7 +492,7 @@ function updateBgmButton() {
 function startBgm() {
   if (bgmStarted) return;
   bgmStarted = true;
-  bgmAudio.volume = 0.42;
+  bgmAudio.volume = Number(bgmVolume.value) / 100;
   bgmAudio.play().then(updateBgmButton).catch(() => {
     bgmStarted = false;
     bgmToggle.textContent = 'BGM 켜기';
@@ -343,6 +502,8 @@ function startBgm() {
 function toggleBgm() {
   if (bgmAudio.paused) {
     bgmAudio.muted = false;
+    if (Number(bgmVolume.value) === 0) bgmVolume.value = String(defaultBgmVolume * 100);
+    if (moonlightActive && bgmAudio.getAttribute('src') !== moonlightBgmSrc) bgmAudio.src = moonlightBgmSrc;
     startBgm();
     updateBgmButton();
     return;
@@ -351,8 +512,15 @@ function toggleBgm() {
   updateBgmButton();
 }
 
+function updateBgmVolume() {
+  bgmAudio.volume = Number(bgmVolume.value) / 100;
+  if (bgmAudio.volume > 0 && bgmAudio.muted) bgmAudio.muted = false;
+  updateBgmButton();
+}
+
 function handleFirstBgmGesture(event) {
   if (event.target instanceof Element && event.target.closest('#bgmToggle')) return;
+  if (moonlightActive) return;
   startBgm();
   window.removeEventListener('pointerdown', handleFirstBgmGesture);
   window.removeEventListener('keydown', handleFirstBgmGesture);
@@ -364,6 +532,335 @@ function getAudioContext() {
   if (!audioCtx) audioCtx = new AudioContextClass();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
+}
+
+const swordState = {
+  playing: false,
+  player: { x: 360, y: 325, r: 17, speed: 5.4 },
+  enemies: [],
+  bullets: [],
+  score: 0,
+  hp: 5,
+  level: 1,
+  lastEnemy: 0,
+  lastBullet: 0,
+  lastFrame: 0,
+  slashUntil: 0,
+  animationId: null
+};
+
+function drawSwordHero(x, y, slashing) {
+  swordCtx.save();
+  swordCtx.translate(x, y);
+  swordCtx.fillStyle = '#2c2430';
+  swordCtx.beginPath();
+  swordCtx.arc(0, -16, 12, 0, Math.PI * 2);
+  swordCtx.fill();
+  swordCtx.fillStyle = '#73d7c4';
+  swordCtx.fillRect(-12, -4, 24, 30);
+  swordCtx.fillStyle = '#ffe07a';
+  swordCtx.fillRect(-5, -28, 10, 7);
+  swordCtx.strokeStyle = slashing ? '#ffe07a' : '#ffffff';
+  swordCtx.lineWidth = slashing ? 8 : 4;
+  swordCtx.beginPath();
+  swordCtx.moveTo(13, -6);
+  swordCtx.lineTo(slashing ? 52 : 32, slashing ? -24 : -16);
+  swordCtx.stroke();
+  if (slashing) {
+    swordCtx.strokeStyle = 'rgba(255,224,122,0.55)';
+    swordCtx.lineWidth = 13;
+    swordCtx.beginPath();
+    swordCtx.arc(10, -8, 48, -0.82, 0.32);
+    swordCtx.stroke();
+  }
+  swordCtx.restore();
+}
+
+function drawSwordGame() {
+  swordCtx.clearRect(0, 0, swordCanvas.width, swordCanvas.height);
+  swordCtx.fillStyle = '#f8fffc';
+  swordCtx.fillRect(0, 0, swordCanvas.width, swordCanvas.height);
+  swordCtx.fillStyle = 'rgba(44,36,48,0.06)';
+  for (let i = 0; i < 12; i++) swordCtx.fillRect(i * 68, 360 + Math.sin(i) * 6, 38, 60);
+
+  swordState.enemies.forEach((enemy) => {
+    swordCtx.fillStyle = enemy.hit ? '#ffe07a' : '#ff8a6b';
+    swordCtx.beginPath();
+    swordCtx.arc(enemy.x, enemy.y, enemy.r, 0, Math.PI * 2);
+    swordCtx.fill();
+    swordCtx.fillStyle = '#2c2430';
+    swordCtx.fillRect(enemy.x - 8, enemy.y - 4, 16, 4);
+  });
+  swordState.bullets.forEach((bullet) => {
+    swordCtx.fillStyle = bullet.color;
+    swordCtx.beginPath();
+    swordCtx.arc(bullet.x, bullet.y, bullet.r, 0, Math.PI * 2);
+    swordCtx.fill();
+  });
+  drawSwordHero(swordState.player.x, swordState.player.y, performance.now() < swordState.slashUntil);
+
+  if (!swordState.playing && swordState.score === 0) {
+    swordCtx.fillStyle = 'rgba(44, 36, 48, 0.72)';
+    swordCtx.font = '22px Segoe UI, sans-serif';
+    swordCtx.textAlign = 'center';
+    swordCtx.fillText('Start를 누르고 방향키/WASD로 이동, Space로 베기', swordCanvas.width / 2, swordCanvas.height / 2);
+  }
+}
+
+function spawnSwordEnemy(now) {
+  if (now - swordState.lastEnemy < Math.max(360, 950 - swordState.level * 70)) return;
+  swordState.lastEnemy = now;
+  const side = Math.floor(Math.random() * 4);
+  const enemy = { x: 0, y: 0, r: 15, speed: 1.1 + swordState.level * 0.12, hit: false };
+  if (side === 0) { enemy.x = -20; enemy.y = Math.random() * swordCanvas.height; }
+  if (side === 1) { enemy.x = swordCanvas.width + 20; enemy.y = Math.random() * swordCanvas.height; }
+  if (side === 2) { enemy.x = Math.random() * swordCanvas.width; enemy.y = -20; }
+  if (side === 3) { enemy.x = Math.random() * swordCanvas.width; enemy.y = swordCanvas.height + 20; }
+  swordState.enemies.push(enemy);
+}
+
+function spawnSwordBullets(now) {
+  if (now - swordState.lastBullet < Math.max(420, 1300 - swordState.level * 90)) return;
+  swordState.lastBullet = now;
+  const cx = swordCanvas.width / 2;
+  const cy = swordCanvas.height / 2;
+  const count = Math.min(18, 6 + swordState.level);
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 / count) * i + now / 900;
+    swordState.bullets.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(angle) * (1.2 + swordState.level * 0.09),
+      vy: Math.sin(angle) * (1.2 + swordState.level * 0.09),
+      r: 5,
+      color: i % 2 ? '#f26f91' : '#73d7c4'
+    });
+  }
+}
+
+function updateSwordGame(now) {
+  if (!swordState.playing) return;
+  const player = swordState.player;
+  if (keys.has('ArrowLeft') || keys.has('a')) player.x -= player.speed;
+  if (keys.has('ArrowRight') || keys.has('d')) player.x += player.speed;
+  if (keys.has('ArrowUp') || keys.has('w')) player.y -= player.speed;
+  if (keys.has('ArrowDown') || keys.has('s')) player.y += player.speed;
+  player.x = Math.max(player.r, Math.min(swordCanvas.width - player.r, player.x));
+  player.y = Math.max(player.r, Math.min(swordCanvas.height - player.r, player.y));
+  swordState.level = 1 + Math.floor(swordState.score / 120);
+
+  spawnSwordEnemy(now);
+  spawnSwordBullets(now);
+  swordState.enemies.forEach((enemy) => {
+    const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+    enemy.x += Math.cos(angle) * enemy.speed;
+    enemy.y += Math.sin(angle) * enemy.speed;
+  });
+  swordState.bullets.forEach((bullet) => {
+    bullet.x += bullet.vx;
+    bullet.y += bullet.vy;
+  });
+
+  const slashing = now < swordState.slashUntil;
+  swordState.enemies = swordState.enemies.filter((enemy) => {
+    const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+    if (slashing && distance < 72) {
+      swordState.score += 20;
+      swordScoreEl.textContent = swordState.score;
+      return false;
+    }
+    if (distance < player.r + enemy.r) {
+      swordState.hp -= 1;
+      swordHpEl.textContent = swordState.hp;
+      return false;
+    }
+    return true;
+  });
+  swordState.bullets = swordState.bullets.filter((bullet) => {
+    const distance = Math.hypot(player.x - bullet.x, player.y - bullet.y);
+    if (distance < player.r + bullet.r) {
+      swordState.hp -= 1;
+      swordHpEl.textContent = swordState.hp;
+      return false;
+    }
+    return bullet.x > -30 && bullet.x < swordCanvas.width + 30 && bullet.y > -30 && bullet.y < swordCanvas.height + 30;
+  });
+
+  if (swordState.hp <= 0) {
+    swordState.playing = false;
+    startSwordBtn.textContent = 'Restart';
+    drawSwordGame();
+    swordCtx.fillStyle = 'rgba(44,36,48,0.78)';
+    swordCtx.font = '28px Segoe UI, sans-serif';
+    swordCtx.textAlign = 'center';
+    swordCtx.fillText(`검객 점수 ${swordState.score}점!`, swordCanvas.width / 2, swordCanvas.height / 2);
+    return;
+  }
+
+  drawSwordGame();
+  swordState.animationId = requestAnimationFrame(updateSwordGame);
+}
+
+function startSwordGame() {
+  cancelAnimationFrame(swordState.animationId);
+  Object.assign(swordState.player, { x: swordCanvas.width / 2, y: swordCanvas.height - 70 });
+  swordState.enemies = [];
+  swordState.bullets = [];
+  swordState.score = 0;
+  swordState.hp = 5;
+  swordState.level = 1;
+  swordState.lastEnemy = 0;
+  swordState.lastBullet = 0;
+  swordState.slashUntil = 0;
+  swordState.playing = true;
+  swordScoreEl.textContent = swordState.score;
+  swordHpEl.textContent = swordState.hp;
+  startSwordBtn.textContent = 'Playing';
+  swordState.animationId = requestAnimationFrame(updateSwordGame);
+}
+
+function resetSwordGame() {
+  cancelAnimationFrame(swordState.animationId);
+  Object.assign(swordState.player, { x: swordCanvas.width / 2, y: swordCanvas.height - 70 });
+  swordState.enemies = [];
+  swordState.bullets = [];
+  swordState.score = 0;
+  swordState.hp = 5;
+  swordState.level = 1;
+  swordState.lastEnemy = 0;
+  swordState.lastBullet = 0;
+  swordState.slashUntil = 0;
+  swordState.playing = false;
+  swordScoreEl.textContent = swordState.score;
+  swordHpEl.textContent = swordState.hp;
+  startSwordBtn.textContent = 'Start';
+  drawSwordGame();
+}
+
+const memoryPads = [
+  { x: 190, y: 142, r: 50, color: '#f26f91' },
+  { x: 360, y: 142, r: 50, color: '#73d7c4' },
+  { x: 530, y: 142, r: 50, color: '#ffe07a' },
+  { x: 275, y: 290, r: 50, color: '#ff8a6b' },
+  { x: 445, y: 290, r: 50, color: '#b7a4ff' }
+];
+const memoryState = {
+  active: false,
+  showing: false,
+  sequence: [],
+  inputIndex: 0,
+  level: 0,
+  streak: 0,
+  litPad: null,
+  timers: [],
+  message: 'Start를 누르면 별이 반짝이는 순서를 보여줄게.'
+};
+
+function drawMemoryGame() {
+  memoryCtx.clearRect(0, 0, memoryCanvas.width, memoryCanvas.height);
+  memoryCtx.fillStyle = '#f8fffc';
+  memoryCtx.fillRect(0, 0, memoryCanvas.width, memoryCanvas.height);
+  memoryCtx.fillStyle = 'rgba(44,36,48,0.05)';
+  for (let i = 0; i < 38; i++) {
+    memoryCtx.beginPath();
+    memoryCtx.arc((i * 97) % memoryCanvas.width, 28 + ((i * 53) % 350), 1.8, 0, Math.PI * 2);
+    memoryCtx.fill();
+  }
+  memoryPads.forEach((pad, index) => {
+    const active = memoryState.litPad === index;
+    memoryCtx.fillStyle = active ? '#ffffff' : pad.color;
+    memoryCtx.shadowColor = pad.color;
+    memoryCtx.shadowBlur = active ? 32 : 12;
+    memoryCtx.beginPath();
+    memoryCtx.arc(pad.x, pad.y, active ? pad.r + 8 : pad.r, 0, Math.PI * 2);
+    memoryCtx.fill();
+    memoryCtx.shadowBlur = 0;
+    memoryCtx.fillStyle = active ? pad.color : 'rgba(255,255,255,0.82)';
+    memoryCtx.font = '24px Segoe UI, sans-serif';
+    memoryCtx.textAlign = 'center';
+    memoryCtx.fillText(String(index + 1), pad.x, pad.y + 8);
+  });
+  memoryCtx.fillStyle = 'rgba(44, 36, 48, 0.74)';
+  memoryCtx.font = '20px Segoe UI, sans-serif';
+  memoryCtx.textAlign = 'center';
+  memoryCtx.fillText(memoryState.message, memoryCanvas.width / 2, 392);
+}
+
+function resetMemoryGame() {
+  memoryState.timers.forEach((timerId) => clearTimeout(timerId));
+  memoryState.active = false;
+  memoryState.showing = false;
+  memoryState.sequence = [];
+  memoryState.inputIndex = 0;
+  memoryState.level = 0;
+  memoryState.streak = 0;
+  memoryState.litPad = null;
+  memoryState.timers = [];
+  memoryState.message = 'Start를 누르면 별이 반짝이는 순서를 보여줄게.';
+  memoryLevelEl.textContent = memoryState.level;
+  memoryStreakEl.textContent = memoryState.streak;
+  startMemoryBtn.textContent = 'Start';
+  drawMemoryGame();
+}
+
+function flashMemoryPad(index, duration = 430) {
+  memoryState.litPad = index;
+  drawMemoryGame();
+  setTimeout(() => {
+    if (memoryState.litPad === index) {
+      memoryState.litPad = null;
+      drawMemoryGame();
+    }
+  }, duration);
+}
+
+function showMemorySequence() {
+  memoryState.showing = true;
+  memoryState.inputIndex = 0;
+  memoryState.message = '순서를 잘 기억해봐.';
+  drawMemoryGame();
+  memoryState.sequence.forEach((padIndex, order) => {
+    memoryState.timers.push(setTimeout(() => flashMemoryPad(padIndex), 520 + order * 650));
+  });
+  memoryState.timers.push(setTimeout(() => {
+    memoryState.showing = false;
+    memoryState.message = '이제 같은 순서로 별을 눌러줘.';
+    drawMemoryGame();
+  }, 650 + memoryState.sequence.length * 650));
+}
+
+function nextMemoryRound() {
+  memoryState.level += 1;
+  memoryState.sequence.push(Math.floor(Math.random() * memoryPads.length));
+  memoryLevelEl.textContent = memoryState.level;
+  showMemorySequence();
+}
+
+function startMemoryGame() {
+  resetMemoryGame();
+  memoryState.active = true;
+  startMemoryBtn.textContent = 'Playing';
+  nextMemoryRound();
+}
+
+function handleMemoryPick(index) {
+  if (!memoryState.active || memoryState.showing) return;
+  flashMemoryPad(index, 240);
+  if (memoryState.sequence[memoryState.inputIndex] !== index) {
+    memoryState.message = `아쉬워! ${memoryState.level}단계까지 기억했어.`;
+    memoryState.active = false;
+    startMemoryBtn.textContent = 'Restart';
+    drawMemoryGame();
+    return;
+  }
+  memoryState.inputIndex += 1;
+  if (memoryState.inputIndex >= memoryState.sequence.length) {
+    memoryState.streak += 1;
+    memoryStreakEl.textContent = memoryState.streak;
+    memoryState.message = '성공! 다음 별자리가 더 길어져.';
+    drawMemoryGame();
+    setTimeout(nextMemoryRound, 720);
+  }
 }
 
 function playCatchSound() {
@@ -518,7 +1015,31 @@ function startGame() {
   animationId = requestAnimationFrame(update);
 }
 
-window.addEventListener('keydown', (event) => keys.add(event.key));
+function resetGame() {
+  clearInterval(timerId);
+  cancelAnimationFrame(animationId);
+  hideReward();
+  basket.x = canvas.width / 2 - basket.w / 2;
+  hearts = [];
+  score = 0;
+  timeLeft = 30;
+  lastSpawn = 0;
+  lastTick = 0;
+  rewardShown = false;
+  playing = false;
+  scoreEl.textContent = score;
+  timeEl.textContent = timeLeft;
+  startBtn.textContent = 'Start';
+  drawGame();
+}
+
+window.addEventListener('keydown', (event) => {
+  keys.add(event.key);
+  if (event.code === 'Space' && swordState.playing) {
+    event.preventDefault();
+    swordState.slashUntil = performance.now() + 220;
+  }
+});
 window.addEventListener('keyup', (event) => keys.delete(event.key));
 window.addEventListener('pointerdown', handleFirstBgmGesture);
 window.addEventListener('keydown', handleFirstBgmGesture);
@@ -529,11 +1050,45 @@ canvas.addEventListener('pointermove', (event) => {
   basket.x = Math.max(0, Math.min(canvas.width - basket.w, basket.x));
   drawGame();
 });
+swordCanvas.addEventListener('pointermove', (event) => {
+  const rect = swordCanvas.getBoundingClientRect();
+  const ratioX = swordCanvas.width / rect.width;
+  const ratioY = swordCanvas.height / rect.height;
+  swordState.player.x = (event.clientX - rect.left) * ratioX;
+  swordState.player.y = (event.clientY - rect.top) * ratioY;
+});
+swordCanvas.addEventListener('pointerdown', () => {
+  if (swordState.playing) swordState.slashUntil = performance.now() + 220;
+});
+memoryCanvas.addEventListener('pointerdown', (event) => {
+  const rect = memoryCanvas.getBoundingClientRect();
+  const ratioX = memoryCanvas.width / rect.width;
+  const ratioY = memoryCanvas.height / rect.height;
+  const x = (event.clientX - rect.left) * ratioX;
+  const y = (event.clientY - rect.top) * ratioY;
+  const picked = memoryPads.findIndex((pad) => Math.hypot(x - pad.x, y - pad.y) <= pad.r + 12);
+  if (picked >= 0) handleMemoryPick(picked);
+});
 bgmToggle.addEventListener('click', toggleBgm);
+bgmVolume.addEventListener('input', updateBgmVolume);
 updateBgmButton();
 renderMoonTracker();
+setupAlbum();
+setupStageBackdrop();
+moonVisual.addEventListener('click', countMoonClick);
 fortuneButton.addEventListener('click', showFortune);
 lunchButton.addEventListener('click', showLunchMenu);
+startSwordBtn.addEventListener('click', startSwordGame);
+resetSwordBtn.addEventListener('click', resetSwordGame);
+startMemoryBtn.addEventListener('click', startMemoryGame);
+resetMemoryBtn.addEventListener('click', resetMemoryGame);
+albumClose.addEventListener('click', closeAlbumModal);
+albumModal.addEventListener('click', (event) => {
+  if (event.target === albumModal) closeAlbumModal();
+});
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !albumModal.hidden) closeAlbumModal();
+});
 petBoy.addEventListener('pointerdown', startPetDrag);
 petBoy.addEventListener('pointermove', dragPet);
 petBoy.addEventListener('pointerup', dropPet);
@@ -550,4 +1105,7 @@ setPetMode('walk');
 requestAnimationFrame(updatePet);
 setTimeout(() => petSay('민지씨랑 놀러 왔어!'), 900);
 startBtn.addEventListener('click', startGame);
+resetBtn.addEventListener('click', resetGame);
 drawGame();
+drawSwordGame();
+drawMemoryGame();
