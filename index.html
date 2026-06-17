@@ -1,0 +1,206 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home">Hulk Page</a>
+    <div class="topbar-actions">
+      <nav aria-label="주요 메뉴">
+        <a href="#message">Message</a>
+        <a href="#game">Game</a>
+        <a href="#fortune">Fortune</a>
+        <a href="#lunch">Lunch</a>
+        <a href="#moon">Moon</a>
+      </nav>
+      <button class="bgm-toggle" id="bgmToggle" type="button" aria-pressed="false">BGM 켜기</button>
+    </div>
+  </header>
+
+  <audio id="bgmAudio" src="assets/bgm.mp3" loop preload="auto"></audio>
+
+  <main id="home">
+    <section class="hero section-shell">
+      <div class="hero-copy">
+        <p class="eyebrow">For your birthday</p>
+        <h1>오늘은 네가 주인공인 날</h1>
+        <p class="hero-text">바쁜 하루 중에도 잠깐 웃을 수 있도록, 축하와 작은 게임과 남겨두는 마음을 한 페이지에 담았어.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#message">축하 메시지 보기</a>
+          <a class="button ghost" href="#game">잠깐 놀기</a>
+        </div>
+      </div>
+      <div class="hero-media" aria-label="메인 이미지">
+        <img src="assets/sora.gif" alt="생일 페이지 메인 GIF" />
+      </div>
+    </section>
+
+    <section id="message" class="message-band">
+      <div class="section-shell message-grid">
+        <div>
+          <p class="eyebrow">Birthday note</p>
+          <h2>생일 축하해</h2>
+          <p>안녕 민지씨?</p>
+          <p>난 세환이라고 해.</p>
+          <p>오늘은 민지씨의 생일! 32번째 생일을 진심으로 축하해.</p>
+          <p>나는 민지씨를 알게된 지난 몇달이 정말 행복했던 순간들이 있었어.</p>
+          <p>복잡한 감정이 드는 순간들, 그리고 본적도 없는 민지씨를 소중하게 생각하게 만드는 순간들...</p>
+          <p>민지씨 내 친구가 되어줘서 정말 고마워!</p>
+          <p>앞으로.... 더 많이 웃고, 더 많이 행복하고, 더 많이 건강했으면 좋겠어!</p>
+          <p>이건 내 진심된 바람이야!</p>
+          <p>생일 축하해~</p>
+          <p>민! 지! 씨!</p>
+        </div>
+        <figure class="cake-card">
+          <img src="assets/birthday-cake.png" alt="초가 켜진 생일 케이크 이미지" />
+          <figcaption>오늘의 케이크는 전부 네 몫</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="game" class="section-shell game-section">
+      <div class="section-heading">
+        <p class="eyebrow">Mini game</p>
+        <h2>하트 줍기 게임</h2>
+        <p>30초 동안 떨어지는 하트를 받아 점수를 올려봐. 사무실에서 잠깐 머리 식히기용으로 가볍게 만들었어.</p>
+      </div>
+      <div class="game-layout">
+        <div class="game-panel">
+          <div class="game-hud">
+            <span>Score <strong id="score">0</strong></span>
+            <span>Time <strong id="timeLeft">30</strong>s</span>
+            <button id="startGame" type="button">Start</button>
+          </div>
+          <div class="game-stage">
+            <canvas id="heartGame" width="720" height="420" aria-label="하트 줍기 미니게임"></canvas>
+            <div class="reward-pop" id="rewardPop" aria-live="polite" hidden>
+              <img id="rewardImage" src="" alt="축하 이미지" />
+              <p>축하해 민지씨! 이렇게나 많이 모았자나~? &gt;.&lt;</p>
+            </div>
+          </div>
+        </div>
+        <div class="tip-panel">
+          <h3>조작</h3>
+          <p>키보드 방향키 또는 A/D로 움직이고, 모바일에서는 보드를 터치해서 바구니를 이동해.</p>
+          <p class="best-score">Best <strong id="bestScore">0</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="fortune" class="fortune-band">
+      <div class="section-shell fortune-grid">
+        <div class="fortune-copy">
+          <p class="eyebrow">Today fortune</p>
+          <h2>민지의 오늘 운세</h2>
+          <p>버튼을 누르면 민지를 위한 오늘의 작은 운세가 랜덤으로 나타나.</p>
+        </div>
+        <div class="fortune-card">
+          <p class="fortune-result" id="fortuneResult" aria-live="polite">민지의 오늘 운세가 기다리고 있어.</p>
+          <button class="button primary" id="fortuneButton" type="button">오늘의 운세 보기</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="lunch" class="lunch-band">
+      <div class="section-shell lunch-grid">
+        <div class="lunch-copy">
+          <p class="eyebrow">Lunch picker</p>
+          <h2>민지의 점심 메뉴 추천기</h2>
+          <p>오늘 민지의 기분을 달콤하게 채워줄 메뉴를 랜덤으로 골라줄게.</p>
+        </div>
+        <div class="lunch-card">
+          <div class="lunch-result" aria-live="polite">
+            <span class="lunch-kicker">오늘의 추천</span>
+            <strong id="lunchResult">민지를 위한 맛있는 점심을 뽑아봐.</strong>
+            <p id="lunchNote">버튼을 누르면 귀여운 점심 운명이 찾아와.</p>
+          </div>
+          <button class="button primary" id="lunchButton" type="button">점심 메뉴 뽑기</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="moon" class="moon-band">
+      <div class="section-shell moon-grid">
+        <div class="moon-copy">
+          <p class="eyebrow">Moon tracker</p>
+          <h2>오늘의 달 위치 추적기</h2>
+          <p>대한민국 서울 기준으로 오늘 달의 모양, 월출 시간, 떠오르는 방향을 알려줄게.</p>
+        </div>
+        <div class="moon-card">
+          <div class="moon-visual" id="moonVisual" aria-hidden="true"></div>
+          <div class="moon-info">
+            <p class="moon-date" id="moonDate">오늘의 달</p>
+            <strong id="moonPhaseName">계산 중</strong>
+            <p id="moonSummary">달 정보를 준비하고 있어.</p>
+            <dl class="moon-stats">
+              <div>
+                <dt>밝기</dt>
+                <dd id="moonIllumination">-</dd>
+              </div>
+              <div>
+                <dt>월출</dt>
+                <dd id="moonRiseTime">-</dd>
+              </div>
+              <div>
+                <dt>방향</dt>
+                <dd id="moonDirection">-</dd>
+              </div>
+            </dl>
+            <p class="moon-note">위치는 서울 기준 근사값이야. 실제 관측 시간은 날씨와 지형에 따라 달라질 수 있어.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Made with love for a birthday worth remembering.
+  </footer>
+
+  <div class="pet-boy" id="petBoy" role="button" tabindex="0" aria-label="돌아다니는 귀여운 남자 캐릭터">
+    <div class="pet-bubble" id="petBubble" aria-live="polite">민지씨 생일 축하해!</div>
+    <div class="climb-holds" id="climbHolds" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="pet-character" aria-hidden="true">
+      <div class="pet-head">
+        <span class="pet-hair"></span>
+        <span class="pet-eye left"></span>
+        <span class="pet-eye right"></span>
+        <span class="pet-cheek left"></span>
+        <span class="pet-cheek right"></span>
+        <span class="pet-smile"></span>
+      </div>
+      <div class="pet-body">
+        <span class="pet-arm left"></span>
+        <span class="pet-arm right"></span>
+        <span class="pet-heart"></span>
+      </div>
+      <div class="pet-legs">
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="easter-screen" id="easterScreen" aria-live="polite" hidden>
+    <div class="easter-card">
+      <p>나 사실 예쁜 민지씨 좋아해.</p>
+      <p>귀엽고 예쁜 민지씨랑 만나서 데이트도 하고 싶어.</p>
+      <p>그녀의 생일을 축하해. 언젠간 만나서 뽀뽀도 해줄 수 있는 날이 왔으면 좋겠다. 헤헤~</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
