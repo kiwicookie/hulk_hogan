@@ -492,11 +492,17 @@ function updateBgmButton() {
 function startBgm() {
   if (bgmStarted) return;
   bgmStarted = true;
+  bgmAudio.muted = false;
   bgmAudio.volume = Number(bgmVolume.value) / 100;
   bgmAudio.play().then(updateBgmButton).catch(() => {
     bgmStarted = false;
     bgmToggle.textContent = 'BGM 켜기';
   });
+}
+
+function attemptBgmAutoplay() {
+  if (moonlightActive || bgmStarted) return;
+  startBgm();
 }
 
 function toggleBgm() {
@@ -1043,6 +1049,7 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener('keyup', (event) => keys.delete(event.key));
 window.addEventListener('pointerdown', handleFirstBgmGesture);
 window.addEventListener('keydown', handleFirstBgmGesture);
+window.addEventListener('pageshow', attemptBgmAutoplay);
 canvas.addEventListener('pointermove', (event) => {
   const rect = canvas.getBoundingClientRect();
   const ratio = canvas.width / rect.width;
@@ -1072,6 +1079,11 @@ memoryCanvas.addEventListener('pointerdown', (event) => {
 bgmToggle.addEventListener('click', toggleBgm);
 bgmVolume.addEventListener('input', updateBgmVolume);
 updateBgmButton();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', attemptBgmAutoplay, { once: true });
+} else {
+  attemptBgmAutoplay();
+}
 renderMoonTracker();
 setupAlbum();
 setupStageBackdrop();
