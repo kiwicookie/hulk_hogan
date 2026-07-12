@@ -856,6 +856,17 @@ footer {
   color: var(--muted);
 }
 
+.rabbit-corner {
+  position: fixed;
+  right: clamp(8px, 2vw, 24px);
+  bottom: 0;
+  z-index: 30;
+  width: clamp(96px, 14vw, 168px);
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 18px rgba(44, 36, 48, 0.16));
+}
+
 .pet-boy {
   position: fixed;
   left: 0;
