@@ -52,6 +52,7 @@ body.moonlight-mode .message-band,
 body.moonlight-mode .fortune-band,
 body.moonlight-mode .lunch-band,
 body.moonlight-mode .moon-band,
+body.moonlight-mode .rabbit-band,
 body.moonlight-mode .stage-band {
   background: rgba(255,255,255,0.08);
   border-block-color: rgba(255,255,255,0.12);
@@ -566,6 +567,56 @@ canvas {
   line-height: 1;
   cursor: pointer;
 }
+.rabbit-band {
+  padding: 74px 0;
+  background:
+    linear-gradient(180deg, rgba(239,251,248,0.84), rgba(255,248,239,0.7)),
+    rgba(255,255,255,0.55);
+  border-block: 1px solid rgba(44, 36, 48, 0.08);
+}
+.rabbit-corner-section {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.2fr);
+  align-items: end;
+  gap: clamp(22px, 5vw, 72px);
+}
+.rabbit-copy h2 {
+  margin-bottom: 0;
+}
+.rabbit-meadow {
+  position: relative;
+  min-height: clamp(210px, 30vw, 340px);
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 224, 122, 0.48), transparent 20%),
+    linear-gradient(180deg, #dff7f0 0 54%, #7fcf9a 54% 100%);
+  border: 1px solid rgba(44,36,48,0.1);
+  box-shadow: var(--shadow);
+}
+.rabbit-meadow::before {
+  content: "";
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -18px;
+  height: 42%;
+  background:
+    repeating-linear-gradient(82deg, rgba(45,127,87,0.24) 0 3px, transparent 3px 13px),
+    linear-gradient(180deg, #83d49d, #4f9f69);
+  border-radius: 50% 50% 0 0;
+}
+.rabbit-meadow img {
+  position: absolute;
+  right: clamp(18px, 6vw, 88px);
+  bottom: clamp(8px, 2vw, 22px);
+  z-index: 1;
+  width: clamp(150px, 26vw, 292px);
+  max-height: 92%;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 18px 18px rgba(44, 36, 48, 0.18));
+}
 .stage-band {
   padding: 92px 0;
   background:
@@ -817,32 +868,6 @@ canvas {
   height: 18px;
   border-radius: 4px;
   background: repeating-linear-gradient(90deg, #fff 0 10px, #2c2430 10px 13px);
-}
-.stage-rabbit-box {
-  position: absolute;
-  right: clamp(14px, 3vw, 34px);
-  bottom: 10px;
-  z-index: 7;
-  display: grid;
-  place-items: end center;
-  width: clamp(112px, 16vw, 188px);
-  height: 92px;
-  padding: 8px 10px 0;
-  overflow: hidden;
-  border-radius: 8px 8px 0 0;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03)),
-    linear-gradient(180deg, #7b3447, #301722);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-bottom: 0;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 14px 32px rgba(0,0,0,0.26);
-}
-.stage-rabbit-box img {
-  width: min(100%, 154px);
-  max-height: 100%;
-  object-fit: contain;
-  object-position: bottom center;
-  filter: drop-shadow(0 10px 12px rgba(0,0,0,0.22));
 }
 body.moonlight-mode .stage-frame {
   background: #090713;
@@ -1392,7 +1417,7 @@ footer {
 @media (max-width: 860px) {
   .topbar { align-items: flex-start; flex-direction: column; gap: 10px; }
   .topbar-actions, nav { justify-content: flex-start; }
-  .hero, .message-grid, .game-layout, .extra-games, .fortune-grid, .lunch-grid, .moon-grid, .moon-card { grid-template-columns: 1fr; }
+  .hero, .message-grid, .game-layout, .extra-games, .fortune-grid, .lunch-grid, .moon-grid, .moon-card, .rabbit-corner-section { grid-template-columns: 1fr; }
   .hero { min-height: auto; padding-top: 42px; }
   .hero-media { transform: none; }
   .game-hud { flex-wrap: wrap; }
@@ -1416,6 +1441,9 @@ footer {
   .moon-stats { grid-template-columns: 1fr; }
   .album-heading p:not(.eyebrow) { font-size: 16px; }
   .album-photo { width: 128px; height: 288px; }
+  .rabbit-band { padding: 54px 0; }
+  .rabbit-meadow { min-height: 240px; }
+  .rabbit-meadow img { right: 18px; width: min(72vw, 230px); }
   .stage-frame { width: min(100% - 24px, 1120px); height: 520px; }
   .stage-curtain { width: 18%; }
   .stage-welldone { transform: translateX(-50%) scale(0.78); }
