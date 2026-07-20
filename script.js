@@ -34,7 +34,7 @@ const adminBestScore = document.querySelector('#adminBestScore');
 const adminBgmStatus = document.querySelector('#adminBgmStatus');
 const adminVisitStatus = document.querySelector('#adminVisitStatus');
 const adminVisitList = document.querySelector('#adminVisitList');
-const adminPasswordValue = '940618';
+const adminPasswordValue = '9940618';
 const visitorIdKey = 'hulk_page_visitor_id';
 const visitorAnalyticsConfig = {
   supabaseUrl: 'https://sdxubxgrucablahubyue.supabase.co',
