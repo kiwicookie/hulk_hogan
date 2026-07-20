@@ -19,6 +19,7 @@ const stagePhotoTrack = document.querySelector('.stage-photo-track');
 const albumModal = document.querySelector('#albumModal');
 const albumFullImage = document.querySelector('#albumFullImage');
 const albumClose = document.querySelector('#albumClose');
+const welldoneDday = document.querySelector('#welldoneDday');
 const adminToggle = document.querySelector('#adminToggle');
 const adminLoginModal = document.querySelector('#adminLoginModal');
 const adminLoginClose = document.querySelector('#adminLoginClose');
@@ -128,6 +129,15 @@ function formatMoonTime(hour) {
   const displayMinutes = minutes % 60;
   const dayLabel = hour >= 24 ? '내일 ' : '';
   return `${dayLabel}${String(displayHour).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}`;
+}
+
+function renderWelldoneDday() {
+  if (!welldoneDday) return;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = new Date(2026, 9, 7);
+  const daysLeft = Math.ceil((targetDate - today) / 86400000);
+  welldoneDday.textContent = `D-${daysLeft}`;
 }
 
 function renderMoonTracker() {
@@ -1389,6 +1399,7 @@ if (document.readyState === 'loading') {
   attemptBgmAutoplay();
 }
 renderMoonTracker();
+renderWelldoneDday();
 recordVisit();
 setupAlbum();
 setupStageBackdrop();
