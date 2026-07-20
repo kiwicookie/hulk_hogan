@@ -19,6 +19,30 @@ const stagePhotoTrack = document.querySelector('.stage-photo-track');
 const albumModal = document.querySelector('#albumModal');
 const albumFullImage = document.querySelector('#albumFullImage');
 const albumClose = document.querySelector('#albumClose');
+const adminToggle = document.querySelector('#adminToggle');
+const adminLoginModal = document.querySelector('#adminLoginModal');
+const adminLoginClose = document.querySelector('#adminLoginClose');
+const adminLoginForm = document.querySelector('#adminLoginForm');
+const adminPassword = document.querySelector('#adminPassword');
+const adminError = document.querySelector('#adminError');
+const adminPanelModal = document.querySelector('#adminPanelModal');
+const adminPanelClose = document.querySelector('#adminPanelClose');
+const adminTodayVisitors = document.querySelector('#adminTodayVisitors');
+const adminTodayVisits = document.querySelector('#adminTodayVisits');
+const adminBestScore = document.querySelector('#adminBestScore');
+const adminBgmStatus = document.querySelector('#adminBgmStatus');
+const adminVisitStatus = document.querySelector('#adminVisitStatus');
+const adminVisitList = document.querySelector('#adminVisitList');
+const adminPasswordValue = '940618';
+const visitorIdKey = 'hulk_page_visitor_id';
+const visitorAnalyticsConfig = {
+  supabaseUrl: 'https://sdxubxgrucablahubyue.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkeHVieGdydWNhYmxhaHVieXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NzEyMDUsImV4cCI6MjEwMDE0NzIwNX0.hHPnYh_BrGEHrkf9rVwiVbgVKbFjgS_ErWyeq2BadY8',
+  tableName: 'visitor_logs',
+  functionsBaseUrl: 'https://sdxubxgrucablahubyue.supabase.co/functions/v1',
+  trackFunctionName: 'visitor-track',
+  adminStatsFunctionName: 'visitor-admin-stats'
+};
 const fortunes = [
   '민지는 오늘 생각보다 더 많은 응원을 받는 날이야.',
   '민지는 오늘 작은 선택 하나로 기분 좋은 흐름을 만들 수 있어.',
@@ -175,6 +199,261 @@ function closeAlbumModal() {
   albumFullImage.removeAttribute('src');
 }
 
+function isVisitorAnalyticsConfigured() {
+  return Boolean(
+    visitorAnalyticsConfig.functionsBaseUrl
+      || (visitorAnalyticsConfig.supabaseUrl && visitorAnalyticsConfig.supabaseAnonKey)
+  );
+}
+
+function isVisitorFunctionMode() {
+  return Boolean(visitorAnalyticsConfig.functionsBaseUrl);
+}
+
+function supabaseEndpoint(query = '') {
+  const baseUrl = visitorAnalyticsConfig.supabaseUrl.replace(/\/$/, '');
+  return `${baseUrl}/rest/v1/${visitorAnalyticsConfig.tableName}${query}`;
+}
+
+function visitorFunctionEndpoint(functionName) {
+  const baseUrl = visitorAnalyticsConfig.functionsBaseUrl.replace(/\/$/, '');
+  return `${baseUrl}/${functionName}`;
+}
+
+function visitorFunctionHeaders(extraHeaders = {}) {
+  const headers = { ...extraHeaders };
+  if (visitorAnalyticsConfig.supabaseAnonKey) {
+    headers.apikey = visitorAnalyticsConfig.supabaseAnonKey;
+    headers.Authorization = `Bearer ${visitorAnalyticsConfig.supabaseAnonKey}`;
+  }
+  return headers;
+}
+
+function supabaseHeaders(extraHeaders = {}) {
+  return {
+    apikey: visitorAnalyticsConfig.supabaseAnonKey,
+    Authorization: `Bearer ${visitorAnalyticsConfig.supabaseAnonKey}`,
+    ...extraHeaders
+  };
+}
+
+function getVisitorId() {
+  let visitorId = localStorage.getItem(visitorIdKey);
+  if (!visitorId) {
+    visitorId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(visitorIdKey, visitorId);
+  }
+  return visitorId;
+}
+
+async function fetchApproxLocation() {
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    if (!response.ok) return {};
+    const data = await response.json();
+    return {
+      ip: data.ip || '',
+      country: data.country_name || data.country || '',
+      region: data.region || '',
+      city: data.city || '',
+      latitude: data.latitude || null,
+      longitude: data.longitude || null
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function recordVisit() {
+  if (!isVisitorAnalyticsConfigured()) return;
+  const location = await fetchApproxLocation();
+  const now = new Date();
+  const payload = {
+    visitor_id: getVisitorId(),
+    visited_at: now.toISOString(),
+    local_time: new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'medium' }).format(now),
+    page_path: window.location.pathname,
+    page_hash: window.location.hash,
+    referrer: document.referrer,
+    user_agent: navigator.userAgent,
+    language: navigator.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ...location
+  };
+
+  try {
+    if (isVisitorFunctionMode()) {
+      await fetch(visitorFunctionEndpoint(visitorAnalyticsConfig.trackFunctionName), {
+        method: 'POST',
+        headers: visitorFunctionHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await fetch(supabaseEndpoint(), {
+        method: 'POST',
+        headers: supabaseHeaders({
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal'
+        }),
+        body: JSON.stringify(payload)
+      });
+    }
+  } catch {
+    // 방문 기록 실패는 페이지 경험을 막지 않는다.
+  }
+}
+
+function todayRange() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return {
+    start: start.toISOString(),
+    end: end.toISOString()
+  };
+}
+
+function formatVisitLocation(visit) {
+  return [visit.country, visit.region, visit.city].filter(Boolean).join(' / ') || '위치 정보 없음';
+}
+
+function renderVisitRows(visits) {
+  adminVisitList.innerHTML = '';
+  if (!visits.length) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.className = 'admin-note';
+    emptyMessage.textContent = '오늘 기록된 방문이 아직 없어.';
+    adminVisitList.appendChild(emptyMessage);
+    return;
+  }
+  visits.forEach((visit) => {
+    const row = document.createElement('div');
+    row.className = 'admin-visit-row';
+    [
+      ['방문 시간', visit.local_time || new Date(visit.visited_at).toLocaleString('ko-KR')],
+      ['위치', formatVisitLocation(visit)],
+      ['페이지', visit.page_path || '/']
+    ].forEach(([label, value]) => {
+      const cell = document.createElement('span');
+      const strong = document.createElement('strong');
+      cell.textContent = label;
+      strong.textContent = value;
+      cell.appendChild(strong);
+      row.appendChild(cell);
+    });
+    adminVisitList.appendChild(row);
+  });
+}
+
+async function loadVisitStats() {
+  adminTodayVisitors.textContent = '-';
+  adminTodayVisits.textContent = '-';
+  adminVisitStatus.textContent = '방문 기록을 불러오는 중이야.';
+  adminVisitList.innerHTML = '';
+
+  if (!isVisitorAnalyticsConfigured()) {
+    adminVisitStatus.textContent = 'Supabase Functions URL을 script.js에 넣으면 GitHub Pages에서도 방문 기록이 저장돼.';
+    const setupMessage = document.createElement('p');
+    setupMessage.className = 'admin-note';
+    setupMessage.textContent = '설정 위치: visitorAnalyticsConfig';
+    adminVisitList.appendChild(setupMessage);
+    return;
+  }
+
+  const { start, end } = todayRange();
+
+  if (isVisitorFunctionMode()) {
+    try {
+      const response = await fetch(visitorFunctionEndpoint(visitorAnalyticsConfig.adminStatsFunctionName), {
+        method: 'POST',
+        headers: visitorFunctionHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          password: adminSessionPassword,
+          start,
+          end
+        })
+      });
+      if (response.status === 401 || response.status === 403) {
+        adminVisitStatus.textContent = '관리자 비밀번호가 맞지 않아.';
+        return;
+      }
+      if (!response.ok) throw new Error('방문 기록 조회 실패');
+      const data = await response.json();
+      adminTodayVisitors.textContent = data.uniqueVisitors;
+      adminTodayVisits.textContent = data.totalVisits;
+      adminVisitStatus.textContent = `최근 ${data.visits.length}건의 오늘 방문 기록이야.`;
+      renderVisitRows(data.visits);
+    } catch {
+      adminVisitStatus.textContent = '방문 기록을 불러오지 못했어. Supabase Function 설정을 확인해줘.';
+    }
+    return;
+  }
+
+  const query = `?select=visitor_id,visited_at,local_time,page_path,country,region,city&visited_at=gte.${encodeURIComponent(start)}&visited_at=lt.${encodeURIComponent(end)}&order=visited_at.desc&limit=50`;
+
+  try {
+    const response = await fetch(supabaseEndpoint(query), {
+      headers: supabaseHeaders()
+    });
+    if (!response.ok) throw new Error('방문 기록 조회 실패');
+    const visits = await response.json();
+    const uniqueVisitors = new Set(visits.map((visit) => visit.visitor_id).filter(Boolean));
+    adminTodayVisitors.textContent = uniqueVisitors.size;
+    adminTodayVisits.textContent = visits.length;
+    adminVisitStatus.textContent = `최근 ${visits.length}건의 오늘 방문 기록이야.`;
+    renderVisitRows(visits);
+  } catch {
+    adminVisitStatus.textContent = '방문 기록을 불러오지 못했어. Supabase 설정과 테이블 권한을 확인해줘.';
+  }
+}
+
+function openAdminLogin() {
+  adminError.textContent = '';
+  adminPassword.value = '';
+  adminLoginModal.hidden = false;
+  requestAnimationFrame(() => adminPassword.focus());
+}
+
+function closeAdminLogin() {
+  adminLoginModal.hidden = true;
+  adminError.textContent = '';
+  adminPassword.value = '';
+}
+
+function updateAdminPanel() {
+  adminBestScore.textContent = bestScore;
+  adminBgmStatus.textContent = bgmAudio.paused || bgmAudio.muted ? '꺼짐' : '켜짐';
+  loadVisitStats();
+}
+
+function openAdminPanel() {
+  closeAdminLogin();
+  updateAdminPanel();
+  adminPanelModal.hidden = false;
+}
+
+function closeAdminPanel() {
+  adminPanelModal.hidden = true;
+}
+
+function closeAdminModals() {
+  closeAdminLogin();
+  closeAdminPanel();
+  adminSessionPassword = '';
+}
+
+function handleAdminLogin(event) {
+  event.preventDefault();
+  if (isVisitorFunctionMode() || adminPassword.value === adminPasswordValue) {
+    adminSessionPassword = adminPassword.value;
+    openAdminPanel();
+    return;
+  }
+  adminError.textContent = '비밀번호가 맞지 않아.';
+  adminPassword.select();
+}
+
 function spawnMusicNote() {
   if (!moonlightActive) return;
   const note = document.createElement('span');
@@ -312,6 +591,7 @@ let moonlightActive = false;
 let moonlightTimerId = null;
 let moonlightNotesId = null;
 let savedBgmState = null;
+let adminSessionPassword = '';
 const petPhrases = [
   '민지씨 오늘도 귀여워!',
   '하트 모으러 가자!',
@@ -448,14 +728,14 @@ function showPetEasterEgg() {
   clearTimeout(petEasterTimerId);
   petEasterTimerId = setTimeout(() => {
     easterScreen.hidden = true;
-  }, 3000);
+  }, 10000);
 }
 
 function countPetClick() {
   const now = Date.now();
   petClickTimes = petClickTimes.filter((time) => now - time <= 10000);
   petClickTimes.push(now);
-  if (petClickTimes.length >= 25) {
+  if (petClickTimes.length >= 5) {
     petClickTimes = [];
     showPetEasterEgg();
   } else if (petClickTimes.length % 6 === 0 || Math.random() < 0.12) {
@@ -1092,6 +1372,16 @@ memoryCanvas.addEventListener('pointerdown', (event) => {
 });
 bgmToggle.addEventListener('click', toggleBgm);
 bgmVolume.addEventListener('input', updateBgmVolume);
+adminToggle.addEventListener('click', openAdminLogin);
+adminLoginForm.addEventListener('submit', handleAdminLogin);
+adminLoginClose.addEventListener('click', closeAdminLogin);
+adminPanelClose.addEventListener('click', closeAdminPanel);
+adminLoginModal.addEventListener('click', (event) => {
+  if (event.target === adminLoginModal) closeAdminLogin();
+});
+adminPanelModal.addEventListener('click', (event) => {
+  if (event.target === adminPanelModal) closeAdminPanel();
+});
 updateBgmButton();
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', attemptBgmAutoplay, { once: true });
@@ -1099,6 +1389,7 @@ if (document.readyState === 'loading') {
   attemptBgmAutoplay();
 }
 renderMoonTracker();
+recordVisit();
 setupAlbum();
 setupStageBackdrop();
 moonVisual.addEventListener('click', countMoonClick);
@@ -1114,6 +1405,7 @@ albumModal.addEventListener('click', (event) => {
 });
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !albumModal.hidden) closeAlbumModal();
+  if (event.key === 'Escape' && (!adminLoginModal.hidden || !adminPanelModal.hidden)) closeAdminModals();
 });
 petBoy.addEventListener('pointerdown', startPetDrag);
 petBoy.addEventListener('pointermove', dragPet);
