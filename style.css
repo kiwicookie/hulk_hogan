@@ -212,6 +212,33 @@ nav a:hover { background: rgba(242, 111, 145, 0.12); color: var(--ink); }
   line-height: 1;
 }
 
+.welldone-quote {
+  max-width: 620px;
+  margin: 24px 0 0;
+  padding: 20px 22px;
+  border-left: 4px solid var(--rose);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.62);
+  box-shadow: 0 14px 34px rgba(94, 56, 72, 0.1);
+}
+
+.welldone-quote p {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(17px, 2vw, 22px);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.welldone-quote cite {
+  display: block;
+  margin-top: 12px;
+  color: #9b3859;
+  font-style: normal;
+  font-weight: 900;
+  text-align: right;
+}
+
 .welldone-photo {
   padding: 10px;
   border-radius: 28px;

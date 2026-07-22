@@ -4,6 +4,16 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
+type Visit = {
+  visitor_id?: string;
+  visited_at?: string;
+  local_time?: string;
+  page_path?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -12,10 +22,6 @@ function jsonResponse(body: unknown, status = 200) {
       'Content-Type': 'application/json'
     }
   });
-}
-
-function isIsoDate(value: unknown) {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
 }
 
 Deno.serve(async (request) => {
@@ -37,37 +43,45 @@ Deno.serve(async (request) => {
   if (input.password !== adminPassword) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
-  if (!isIsoDate(input.start) || !isIsoDate(input.end)) {
-    return jsonResponse({ error: 'Valid start and end are required' }, 400);
-  }
+  const uniqueVisitors = new Set<string>();
+  const recentVisits: Visit[] = [];
+  let totalVisits = 0;
+  let offset = 0;
+  const pageSize = 1000;
 
-  const query = new URLSearchParams({
-    select: 'visitor_id,visited_at,local_time,page_path,country,region,city',
-    visited_at: `gte.${input.start}`,
-    order: 'visited_at.desc',
-    limit: '1000'
-  });
-  query.append('visited_at', `lt.${input.end}`);
+  while (true) {
+    const query = new URLSearchParams({
+      select: 'visitor_id,visited_at,local_time,page_path,country,region,city',
+      order: 'visited_at.desc',
+      limit: String(pageSize),
+      offset: String(offset)
+    });
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/visitor_logs?${query}`, {
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`
+    const response = await fetch(`${supabaseUrl}/rest/v1/visitor_logs?${query}`, {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`
+      }
+    });
+
+    if (!response.ok) {
+      return jsonResponse({ error: 'Failed to load visitor stats' }, 500);
     }
-  });
 
-  if (!response.ok) {
-    return jsonResponse({ error: 'Failed to load visitor stats' }, 500);
+    const visits = await response.json();
+    totalVisits += visits.length;
+    visits.forEach((visit: Visit) => {
+      if (visit.visitor_id) uniqueVisitors.add(visit.visitor_id);
+    });
+    recentVisits.push(...visits.slice(0, Math.max(0, 50 - recentVisits.length)));
+
+    if (visits.length < pageSize) break;
+    offset += pageSize;
   }
-
-  const visits = await response.json();
-  const uniqueVisitors = new Set(
-    visits.map((visit: { visitor_id?: string }) => visit.visitor_id).filter(Boolean)
-  );
 
   return jsonResponse({
-    totalVisits: visits.length,
+    totalVisits,
     uniqueVisitors: uniqueVisitors.size,
-    visits: visits.slice(0, 50)
+    visits: recentVisits
   });
 });

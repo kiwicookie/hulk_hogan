@@ -28,8 +28,8 @@ const adminPassword = document.querySelector('#adminPassword');
 const adminError = document.querySelector('#adminError');
 const adminPanelModal = document.querySelector('#adminPanelModal');
 const adminPanelClose = document.querySelector('#adminPanelClose');
-const adminTodayVisitors = document.querySelector('#adminTodayVisitors');
-const adminTodayVisits = document.querySelector('#adminTodayVisits');
+const adminTotalVisitors = document.querySelector('#adminTotalVisitors');
+const adminTotalVisits = document.querySelector('#adminTotalVisits');
 const adminBestScore = document.querySelector('#adminBestScore');
 const adminBgmStatus = document.querySelector('#adminBgmStatus');
 const adminVisitStatus = document.querySelector('#adminVisitStatus');
@@ -313,17 +313,6 @@ async function recordVisit() {
   }
 }
 
-function todayRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return {
-    start: start.toISOString(),
-    end: end.toISOString()
-  };
-}
-
 function formatVisitLocation(visit) {
   return [visit.country, visit.region, visit.city].filter(Boolean).join(' / ') || '위치 정보 없음';
 }
@@ -333,7 +322,7 @@ function renderVisitRows(visits) {
   if (!visits.length) {
     const emptyMessage = document.createElement('p');
     emptyMessage.className = 'admin-note';
-    emptyMessage.textContent = '오늘 기록된 방문이 아직 없어.';
+    emptyMessage.textContent = '아직 기록된 방문이 없어.';
     adminVisitList.appendChild(emptyMessage);
     return;
   }
@@ -357,8 +346,8 @@ function renderVisitRows(visits) {
 }
 
 async function loadVisitStats() {
-  adminTodayVisitors.textContent = '-';
-  adminTodayVisits.textContent = '-';
+  adminTotalVisitors.textContent = '-';
+  adminTotalVisits.textContent = '-';
   adminVisitStatus.textContent = '방문 기록을 불러오는 중이야.';
   adminVisitList.innerHTML = '';
 
@@ -371,17 +360,13 @@ async function loadVisitStats() {
     return;
   }
 
-  const { start, end } = todayRange();
-
   if (isVisitorFunctionMode()) {
     try {
       const response = await fetch(visitorFunctionEndpoint(visitorAnalyticsConfig.adminStatsFunctionName), {
         method: 'POST',
         headers: visitorFunctionHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          password: adminSessionPassword,
-          start,
-          end
+          password: adminSessionPassword
         })
       });
       if (response.status === 401 || response.status === 403) {
@@ -390,9 +375,9 @@ async function loadVisitStats() {
       }
       if (!response.ok) throw new Error('방문 기록 조회 실패');
       const data = await response.json();
-      adminTodayVisitors.textContent = data.uniqueVisitors;
-      adminTodayVisits.textContent = data.totalVisits;
-      adminVisitStatus.textContent = `최근 ${data.visits.length}건의 오늘 방문 기록이야.`;
+      adminTotalVisitors.textContent = data.uniqueVisitors;
+      adminTotalVisits.textContent = data.totalVisits;
+      adminVisitStatus.textContent = `최근 ${data.visits.length}건의 역대 방문 기록이야.`;
       renderVisitRows(data.visits);
     } catch {
       adminVisitStatus.textContent = '방문 기록을 불러오지 못했어. Supabase Function 설정을 확인해줘.';
@@ -400,7 +385,7 @@ async function loadVisitStats() {
     return;
   }
 
-  const query = `?select=visitor_id,visited_at,local_time,page_path,country,region,city&visited_at=gte.${encodeURIComponent(start)}&visited_at=lt.${encodeURIComponent(end)}&order=visited_at.desc&limit=50`;
+  const query = '?select=visitor_id,visited_at,local_time,page_path,country,region,city&order=visited_at.desc&limit=1000';
 
   try {
     const response = await fetch(supabaseEndpoint(query), {
@@ -409,10 +394,10 @@ async function loadVisitStats() {
     if (!response.ok) throw new Error('방문 기록 조회 실패');
     const visits = await response.json();
     const uniqueVisitors = new Set(visits.map((visit) => visit.visitor_id).filter(Boolean));
-    adminTodayVisitors.textContent = uniqueVisitors.size;
-    adminTodayVisits.textContent = visits.length;
-    adminVisitStatus.textContent = `최근 ${visits.length}건의 오늘 방문 기록이야.`;
-    renderVisitRows(visits);
+    adminTotalVisitors.textContent = uniqueVisitors.size;
+    adminTotalVisits.textContent = visits.length;
+    adminVisitStatus.textContent = `최근 ${Math.min(visits.length, 50)}건의 역대 방문 기록이야.`;
+    renderVisitRows(visits.slice(0, 50));
   } catch {
     adminVisitStatus.textContent = '방문 기록을 불러오지 못했어. Supabase 설정과 테이블 권한을 확인해줘.';
   }
